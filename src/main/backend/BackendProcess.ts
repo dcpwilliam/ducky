@@ -24,20 +24,30 @@ export class BackendProcess extends EventEmitter {
 
   async start(): Promise<void> {
     const exe = locateBackend()
-    this.spawnProcess(exe.cmd, exe.args)
+    this.spawnProcess(exe.cmd, exe.args, exe.env)
   }
 
-  private async spawnProcess(cmd: string, args: string[]): Promise<void> {
+  private async spawnProcess(cmd: string, args: string[], envOverrides?: Record<string, string>): Promise<void> {
     const backendDir = join(app.getAppPath(), 'backend')
-    const pythonPath = process.env.PYTHONPATH ? `${backendDir}:${process.env.PYTHONPATH}` : backendDir
+
+    const spawnEnv: Record<string, string | undefined> = {
+      ...process.env,
+      PYTHONHOME: undefined,
+      PYTHONPATH: backendDir
+    }
+
+    if (envOverrides) {
+      Object.assign(spawnEnv, envOverrides)
+      if (envOverrides['PYTHONPATH'] === '') {
+        spawnEnv['PYTHONPATH'] = backendDir
+      } else if (envOverrides['PYTHONPATH']) {
+        spawnEnv['PYTHONPATH'] = `${backendDir}:${envOverrides['PYTHONPATH']}`
+      }
+    }
 
     this.process = spawn(cmd, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PYTHONHOME: undefined,
-        PYTHONPATH: pythonPath
-      }
+      env: spawnEnv
     })
 
     this.rpc = new RpcClient(this.process)
@@ -85,7 +95,7 @@ export class BackendProcess extends EventEmitter {
     setTimeout(() => {
       if (!this.stopping) {
         const exe = locateBackend()
-        this.spawnProcess(exe.cmd, exe.args)
+        this.spawnProcess(exe.cmd, exe.args, exe.env)
       }
     }, delay)
   }

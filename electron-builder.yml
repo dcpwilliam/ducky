@@ -12,6 +12,10 @@ extraResources:
     to: backend
     filter:
       - '**/*'
+  - from: resources/python/
+    to: python
+    filter:
+      - '**/*'
 publish:
   provider: generic
   url: https://updates.ducky.app

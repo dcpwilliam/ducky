@@ -1,13 +1,8 @@
 import asyncio
 import os
 import json
-import numpy as np
 from typing import Callable, Any
 import logging
-
-from .duck_env import DuckEnv
-from .ppo import PPO
-from .policy_io import save_policy, compute_spec_hash
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +51,11 @@ class TrainingService:
     async def _train(self, config: dict) -> dict:
         """Run PPO training loop."""
         try:
+            import numpy as np
+            from ..training.duck_env import DuckEnv
+            from ..training.ppo import PPO
+            from ..training.policy_io import save_policy, compute_spec_hash
+
             # Extract config
             iterations = config.get("iterations", 100)
             steps_per_iter = config.get("steps_per_iter", 1000)

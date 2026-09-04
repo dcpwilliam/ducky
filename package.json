@@ -13,7 +13,9 @@
     "build:win": "npm run build && electron-builder --win --config",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web"
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "fetch-python": "node scripts/fetch-python.mjs",
+    "fetch-python:win": "node scripts/fetch-python.mjs win"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.14.0",

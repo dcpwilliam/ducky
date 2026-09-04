@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+resources/python/
+backend/dist/
+*.pyc
+__pycache__/
+.DS_Store
