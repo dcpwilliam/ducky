@@ -6,6 +6,7 @@ import { PtyManager } from '../pty/PtyManager'
 import { JupyterManager } from '../jupyter/JupyterManager'
 import { readdir, readFile } from 'fs/promises'
 import { join } from 'path'
+import { homedir } from 'os'
 
 let backend: BackendProcess | null = null
 let ptyManager: PtyManager | null = null
@@ -93,4 +94,7 @@ export function registerAllHandlers(): void {
   ipcMain.handle(IPC.FS_READ_FILE, async (_event, filePath: string) => {
     return readFile(filePath, 'utf-8')
   })
+
+  // App info
+  ipcMain.handle(IPC.APP_HOME_DIR, () => homedir())
 }

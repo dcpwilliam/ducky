@@ -69,7 +69,7 @@ const duckyApi = {
 
   // Training
   startTraining: (config: Record<string, unknown>) =>
-    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'train.start', config),
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'train.start', { config }),
 
   cancelTraining: () =>
     ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'train.cancel'),
@@ -109,6 +109,10 @@ const duckyApi = {
     ipcRenderer.on(IPC.UPDATER_EVENT, handler)
     return () => ipcRenderer.removeListener(IPC.UPDATER_EVENT, handler)
   },
+
+  // App info
+  getHomeDir: () =>
+    ipcRenderer.invoke(IPC.APP_HOME_DIR),
 
   // Window controls
   minimize: () => ipcRenderer.send(IPC.WINDOW_MINIMIZE),

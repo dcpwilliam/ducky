@@ -22,9 +22,14 @@ export class JupyterManager {
     const token = randomBytes(24).toString('hex')
     const port = await this.findFreePort()
 
-    const pythonExe = process.platform === 'win32'
-      ? `${envPath}\\Scripts\\python.exe`
-      : `${envPath}/bin/python`
+    let pythonExe: string
+    if (envPath === 'default' || !envPath) {
+      pythonExe = process.platform === 'win32' ? 'python' : 'python3'
+    } else {
+      pythonExe = process.platform === 'win32'
+        ? `${envPath}\\Scripts\\python.exe`
+        : `${envPath}/bin/python`
+    }
 
     const serverProc = spawn(pythonExe, [
       '-m', 'jupyter', 'lab',

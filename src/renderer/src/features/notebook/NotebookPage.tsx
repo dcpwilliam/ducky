@@ -48,7 +48,8 @@ export function NotebookPage(): React.ReactElement {
     })
     if (!result.canceled && result.filePaths[0] && jupyterUrl) {
       const filePath = result.filePaths[0]
-      const treePath = filePath.replace(process.env.HOME ?? '', '')
+      const home = await window.ducky.getHomeDir() as string
+      const treePath = filePath.replace(home, '')
       const newUrl = jupyterUrl.split('/lab')[0] + `/lab/tree${treePath}`
       setJupyterUrl(newUrl)
     }

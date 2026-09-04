@@ -2,14 +2,18 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { createWindow } from './window'
-import { registerAllHandlers } from './ipc/register-handlers'
+import { registerAllHandlers, setServices } from './ipc/register-handlers'
 import { BackendProcess } from './backend/BackendProcess'
 import { MonitorService } from './monitor/MonitorService'
+import { PtyManager } from './pty/PtyManager'
+import { JupyterManager } from './jupyter/JupyterManager'
 import { initUpdater, stopUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let backend: BackendProcess | null = null
 let monitor: MonitorService | null = null
+let ptyManager: PtyManager | null = null
+let jupyterManager: JupyterManager | null = null
 
 async function onReady(): Promise<void> {
   electronApp.setAppUserModelId('com.ducky.app')
@@ -18,11 +22,16 @@ async function onReady(): Promise<void> {
     optimizer.watchWindowShortcuts(window)
   })
 
+  ptyManager = new PtyManager()
+  jupyterManager = new JupyterManager()
+
+  backend = new BackendProcess()
+
   registerAllHandlers()
+  setServices(backend, ptyManager, jupyterManager)
 
   mainWindow = createWindow()
 
-  backend = new BackendProcess()
   await backend.start()
 
   monitor = new MonitorService(mainWindow)
@@ -42,6 +51,8 @@ app.whenReady().then(onReady)
 app.on('window-all-closed', () => {
   monitor?.stop()
   backend?.stop()
+  ptyManager?.killAll()
+  jupyterManager?.stop()
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -57,6 +68,8 @@ app.on('before-quit', () => {
   stopUpdater()
   monitor?.stop()
   backend?.stop()
+  ptyManager?.killAll()
+  jupyterManager?.stop()
 })
 
 export function getMainWindow(): BrowserWindow | null {

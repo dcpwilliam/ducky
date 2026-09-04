@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any, Callable, Awaitable, Optional
 
@@ -36,7 +37,9 @@ class Dispatcher:
             return None
 
         try:
-            result = await handler(**(params if isinstance(params, dict) else {}))
+            result = handler(**(params if isinstance(params, dict) else {}))
+            if asyncio.iscoroutine(result):
+                result = await result
             if req_id is not None:
                 return {
                     'jsonrpc': '2.0',

@@ -4,7 +4,7 @@ import { Plus, Trash2, Terminal as TerminalIcon, RefreshCw, Package, Search } fr
 interface CondaEnv {
   name: string
   path: string
-  isActive: boolean
+  isDefault?: boolean
 }
 
 export function EnvPage(): React.ReactElement {
@@ -241,8 +241,7 @@ function TerminalPanel({ envPath }: { envPath: string }): React.ReactElement {
 
       ptyId = await window.ducky.createPty({
         cols: term.cols,
-        rows: term.rows,
-        cwd: process.env.HOME
+        rows: term.rows
       })
 
       if (disposed) {

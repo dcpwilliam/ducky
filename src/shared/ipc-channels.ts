@@ -20,5 +20,6 @@ export const IPC = {
   UPDATER_EVENT: 'updater:event',
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
-  WINDOW_CLOSE: 'window:close'
+  WINDOW_CLOSE: 'window:close',
+  APP_HOME_DIR: 'app:homeDir'
 } as const

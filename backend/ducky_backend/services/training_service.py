@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class TrainingService:
     """Service for managing PPO training runs."""
 
-    def __init__(self, notify: Callable[[str, dict], None] | None = None):
+    def __init__(self, notify: Callable | None = None):
         self.current_run: asyncio.Task | None = None
         self.cancel_requested = False
         self.notify = notify
@@ -133,7 +133,7 @@ class TrainingService:
 
                 # Send progress notification
                 if self.notify:
-                    self.notify(
+                    await self.notify(
                         "train.progress",
                         {
                             "iteration": iteration + 1,
@@ -157,7 +157,7 @@ class TrainingService:
 
             # Send done notification
             if self.notify:
-                self.notify("train.done", result)
+                await self.notify("train.done", result)
 
             return result
 
@@ -167,5 +167,5 @@ class TrainingService:
         except Exception as e:
             logger.error(f"Training failed: {e}", exc_info=True)
             if self.notify:
-                self.notify("train.done", {"success": False, "error": str(e)})
+                await self.notify("train.done", {"success": False, "error": str(e)})
             raise
