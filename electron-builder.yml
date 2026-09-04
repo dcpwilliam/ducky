@@ -1,0 +1,36 @@
+appId: com.ducky.app
+productName: Ducky
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - '!node_modules/**/*'
+asar: true
+extraResources:
+  - from: backend/dist/
+    to: backend
+    filter:
+      - '**/*'
+publish:
+  provider: generic
+  url: https://updates.ducky.app
+  channel: latest
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  shortcutName: Ducky
+mac:
+  target: [dmg]
+  icon: resources/icon.icns
+linux:
+  target: [AppImage]
+  icon: resources/icon.png

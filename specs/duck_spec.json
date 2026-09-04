@@ -1,0 +1,55 @@
+{
+  "name": "MicroDuck",
+  "version": "1.0.0",
+  "body": {
+    "pelvis": {
+      "mass": 1.0,
+      "size": [0.3, 0.15, 0.2]
+    },
+    "legs": {
+      "count": 2,
+      "joints_per_leg": 3,
+      "joint_names": ["hip_pitch", "knee", "ankle"],
+      "upper_leg": {
+        "length": 0.2,
+        "mass": 0.5
+      },
+      "lower_leg": {
+        "length": 0.2,
+        "mass": 0.3
+      },
+      "foot": {
+        "size": [0.08, 0.02, 0.06],
+        "mass": 0.1
+      }
+    }
+  },
+  "observation": {
+    "dim": 22,
+    "layout": {
+      "angular_velocity": { "offset": 0, "size": 3 },
+      "projected_gravity": { "offset": 3, "size": 3 },
+      "joint_positions": { "offset": 6, "size": 6 },
+      "joint_velocities": { "offset": 12, "size": 6 },
+      "last_action": { "offset": 18, "size": 4 }
+    }
+  },
+  "action": {
+    "dim": 6,
+    "scale": 1.0,
+    "joint_mapping": ["left_hip", "left_knee", "right_hip", "right_knee"]
+  },
+  "reward": {
+    "forward_weight": 0.1,
+    "height_penalty_weight": 2.0,
+    "action_penalty_weight": 0.01
+  },
+  "simulation": {
+    "dt": 0.004166666666666667,
+    "substeps": 12,
+    "max_episode_length": 1000,
+    "gravity": [0, -9.81, 0]
+  },
+  "obs_dim": 22,
+  "act_dim": 6
+}
