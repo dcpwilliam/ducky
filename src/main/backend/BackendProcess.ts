@@ -14,6 +14,51 @@ export interface BackendStatus {
   restartCount: number
 }
 
+/**
+ * Environment tweaks for HuggingFace model downloads.
+ *
+ * Xet (the chunked CAS backend huggingface_hub enables by default) fails with
+ * 401 against public mirrors, so we disable it unless the user opted in.
+ *
+ * The official HF endpoint is often unreachable from restricted networks, so in
+ * dev we default to the hf-mirror.com mirror. Both values remain overridable
+ * from the shell via HF_ENDPOINT / DUCKY_HF_MIRROR (production keeps the
+ * official endpoint unless explicitly overridden).
+ */
+function huggingFaceEnv(): Record<string, string> {
+  const env: Record<string, string> = {}
+  if (!process.env.HF_HUB_DISABLE_XET) {
+    env.HF_HUB_DISABLE_XET = '1'
+  }
+  if (!process.env.HF_ENDPOINT) {
+    if (process.env.DUCKY_HF_MIRROR) {
+      env.HF_ENDPOINT = process.env.DUCKY_HF_MIRROR
+    } else if (!app.isPackaged) {
+      env.HF_ENDPOINT = 'https://hf-mirror.com'
+    }
+  }
+  return env
+}
+
+/**
+ * Per-method RPC timeouts.
+ *
+ * The 30s default is far too short for model work: loading a model may involve
+ * downloading several GB from HuggingFace, and a notebook cell can legitimately
+ * run a training loop. Those calls get generous budgets; everything else keeps
+ * the short default so a wedged backend surfaces quickly.
+ */
+function timeoutForMethod(method: string): number {
+  if (method.startsWith('llm.load')) return 20 * 60 * 1000      // includes download
+  if (method.startsWith('llm.generate')) return 10 * 60 * 1000   // long generations
+  if (method.startsWith('kernel.execute')) return 30 * 60 * 1000 // training cells
+  if (method.startsWith('train.')) return 60 * 60 * 1000
+  if (method.startsWith('env.install') || method.startsWith('env.update')) {
+    return 10 * 60 * 1000
+  }
+  return 30 * 1000
+}
+
 export class BackendProcess extends EventEmitter {
   private process: ChildProcess | null = null
   private rpc: RpcClient | null = null
@@ -33,7 +78,8 @@ export class BackendProcess extends EventEmitter {
     const spawnEnv: Record<string, string | undefined> = {
       ...process.env,
       PYTHONHOME: undefined,
-      PYTHONPATH: backendDir
+      PYTHONPATH: backendDir,
+      ...huggingFaceEnv()
     }
 
     if (envOverrides) {
@@ -102,7 +148,7 @@ export class BackendProcess extends EventEmitter {
 
   async invoke(method: string, params?: Record<string, unknown>): Promise<unknown> {
     if (!this.rpc) throw new Error('Backend not connected')
-    return this.rpc.call(method, params ?? {})
+    return this.rpc.call(method, params ?? {}, timeoutForMethod(method))
   }
 
   getStatus(): BackendStatus {

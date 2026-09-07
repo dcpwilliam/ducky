@@ -9,6 +9,24 @@ import { PtyManager } from './pty/PtyManager'
 import { JupyterManager } from './jupyter/JupyterManager'
 import { initUpdater, stopUpdater } from './updater'
 
+// The host environment injects ELECTRON_RUN_AS_NODE=1 into the shell, which
+// forces the Electron binary to degenerate into a plain Node process (making
+// require('electron').app === undefined and crashing on startup). Strip it so
+// the main process can boot as a real Electron app. We also relax the macOS
+// sandbox / GPU process, which is blocked by the restricted dev environment —
+// MLX inference runs in the separate Python backend process and does not rely
+// on Electron's GPU process, so this is safe for local development.
+delete process.env.ELECTRON_RUN_AS_NODE
+if (!app.isPackaged) {
+  app.commandLine.appendSwitch('no-sandbox')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+  app.commandLine.appendSwitch('disable-dev-shm-usage')
+  // Electron's own GPU process can't initialize under the restricted sandbox;
+  // fall back to software rendering for the UI. The 3D sim page still works
+  // via SwiftShader, and the Python backend keeps full MLX GPU acceleration.
+  app.commandLine.appendSwitch('disable-gpu')
+}
+
 let mainWindow: BrowserWindow | null = null
 let backend: BackendProcess | null = null
 let monitor: MonitorService | null = null

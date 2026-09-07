@@ -57,15 +57,133 @@ const duckyApi = {
     return () => ipcRenderer.removeListener(IPC.JUPYTER_STATUS, handler)
   },
 
+  // ---- LLM inference ----
+  llmBackendInfo: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.backendInfo'),
+
+  llmListModels: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.listModels'),
+
+  llmLoad: (modelId: string, opts?: Record<string, unknown>) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.load', { modelId, ...(opts ?? {}) }),
+
+  llmUnload: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.unload'),
+
+  llmStatus: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.status'),
+
+  llmGenerate: (params: {
+    prompt?: string
+    messages?: { role: string; content: string }[]
+    params?: Record<string, unknown>
+  }) => ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.generate', params),
+
+  llmGenerateStream: (params: {
+    prompt?: string
+    messages?: { role: string; content: string }[]
+    params?: Record<string, unknown>
+    jobId?: string
+  }) => ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.generateStream', params),
+
+  llmCancel: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.cancel'),
+
+  llmCountTokens: (text: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'llm.countTokens', { text }),
+
+  onLlmToken: (callback: (data: { jobId: string; text: string; index: number }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { topic: string; payload: unknown }) => {
+      if (data.topic === 'llm.token') callback(data.payload as never)
+    }
+    ipcRenderer.on(IPC.BACKEND_NOTIFICATION, handler)
+    return () => ipcRenderer.removeListener(IPC.BACKEND_NOTIFICATION, handler)
+  },
+
+  onLlmDone: (callback: (data: {
+    jobId: string
+    text: string
+    cancelled: boolean
+    tokensPerSecond: number
+    completionTokens: number
+    elapsedMs: number
+  }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { topic: string; payload: unknown }) => {
+      if (data.topic === 'llm.done') callback(data.payload as never)
+    }
+    ipcRenderer.on(IPC.BACKEND_NOTIFICATION, handler)
+    return () => ipcRenderer.removeListener(IPC.BACKEND_NOTIFICATION, handler)
+  },
+
+  onLlmStatus: (callback: (data: { state: string; modelId: string | null }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { topic: string; payload: unknown }) => {
+      if (data.topic === 'llm.status') callback(data.payload as never)
+    }
+    ipcRenderer.on(IPC.BACKEND_NOTIFICATION, handler)
+    return () => ipcRenderer.removeListener(IPC.BACKEND_NOTIFICATION, handler)
+  },
+
+  // ---- Notebook kernel ----
+  kernelCreateSession: (name?: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.createSession', { name }),
+
+  kernelDeleteSession: (sessionId: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.deleteSession', { sessionId }),
+
+  kernelListSessions: () =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.listSessions'),
+
+  kernelExecute: (sessionId: string, code: string, cellId: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.execute', { sessionId, code, cellId }),
+
+  kernelInterrupt: (sessionId: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.interrupt', { sessionId }),
+
+  kernelVariables: (sessionId: string) =>
+    ipcRenderer.invoke(IPC.BACKEND_INVOKE, 'kernel.variables', { sessionId }),
+
+  onKernelStream: (callback: (data: {
+    sessionId: string
+    cellId: string
+    stream: 'stdout' | 'stderr'
+    text: string
+  }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { topic: string; payload: unknown }) => {
+      if (data.topic === 'kernel.stream') callback(data.payload as never)
+    }
+    ipcRenderer.on(IPC.BACKEND_NOTIFICATION, handler)
+    return () => ipcRenderer.removeListener(IPC.BACKEND_NOTIFICATION, handler)
+  },
+
+  onKernelStatus: (callback: (data: {
+    sessionId: string
+    cellId: string
+    status: string
+    executionCount?: number
+    result?: unknown
+  }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, data: { topic: string; payload: unknown }) => {
+      if (data.topic === 'kernel.status') callback(data.payload as never)
+    }
+    ipcRenderer.on(IPC.BACKEND_NOTIFICATION, handler)
+    return () => ipcRenderer.removeListener(IPC.BACKEND_NOTIFICATION, handler)
+  },
+
   // File system
   openDialog: (options?: { filters?: { name: string; extensions: string[] }[]; properties?: string[] }) =>
     ipcRenderer.invoke(IPC.FS_OPEN_DIALOG, options),
+
+  saveDialog: (options?: { filters?: { name: string; extensions: string[] }[]; defaultPath?: string }) =>
+    ipcRenderer.invoke(IPC.FS_SAVE_DIALOG, options),
 
   readDir: (dirPath: string) =>
     ipcRenderer.invoke(IPC.FS_READ_DIR, dirPath),
 
   readFile: (filePath: string) =>
     ipcRenderer.invoke(IPC.FS_READ_FILE, filePath),
+
+  writeFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke(IPC.FS_WRITE_FILE, filePath, content),
 
   // Training
   startTraining: (config: Record<string, unknown>) =>

@@ -1,12 +1,13 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Monitor, Terminal, BookOpen, Gamepad2 } from 'lucide-react'
+import { Monitor, Terminal, BookOpen, Gamepad2, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 
 const navItems = [
-  { path: '/', label: 'Monitor', icon: Monitor },
-  { path: '/env', label: 'Python Env', icon: Terminal },
+  { path: '/', label: 'Models', icon: Sparkles },
   { path: '/notebook', label: 'Notebook', icon: BookOpen },
+  { path: '/monitor', label: 'Monitor', icon: Monitor },
+  { path: '/env', label: 'Python Env', icon: Terminal },
   { path: '/sim', label: 'Simulation', icon: Gamepad2 }
 ]
 

@@ -5,6 +5,7 @@ import { MonitorPage } from './features/monitor/MonitorPage'
 import { EnvPage } from './features/pyenv/EnvPage'
 import { NotebookPage } from './features/notebook/NotebookPage'
 import { SimPage } from './features/sim/SimPage'
+import { ModelsPage } from './features/models/ModelsPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Onboarding, isOnboardingDone } from './components/Onboarding'
 
@@ -16,9 +17,10 @@ export default function App(): React.ReactElement {
       {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
       <AppLayout>
         <Routes>
-          <Route path="/" element={<MonitorPage />} />
-          <Route path="/env" element={<EnvPage />} />
+          <Route path="/" element={<ModelsPage />} />
           <Route path="/notebook" element={<NotebookPage />} />
+          <Route path="/monitor" element={<MonitorPage />} />
+          <Route path="/env" element={<EnvPage />} />
           <Route path="/sim" element={<SimPage />} />
         </Routes>
       </AppLayout>

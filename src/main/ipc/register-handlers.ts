@@ -4,7 +4,7 @@ import { getMainWindow } from '../index'
 import { BackendProcess } from '../backend/BackendProcess'
 import { PtyManager } from '../pty/PtyManager'
 import { JupyterManager } from '../jupyter/JupyterManager'
-import { readdir, readFile } from 'fs/promises'
+import { readdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
 
@@ -93,6 +93,21 @@ export function registerAllHandlers(): void {
 
   ipcMain.handle(IPC.FS_READ_FILE, async (_event, filePath: string) => {
     return readFile(filePath, 'utf-8')
+  })
+
+  ipcMain.handle(IPC.FS_SAVE_DIALOG, async (_event, options: {
+    filters?: Electron.FileFilter[]
+    defaultPath?: string
+  }) => {
+    return dialog.showSaveDialog({
+      filters: options.filters ?? [{ name: 'All Files', extensions: ['*'] }],
+      defaultPath: options.defaultPath
+    })
+  })
+
+  ipcMain.handle(IPC.FS_WRITE_FILE, async (_event, filePath: string, content: string) => {
+    await writeFile(filePath, content, 'utf-8')
+    return { success: true, path: filePath }
   })
 
   // App info

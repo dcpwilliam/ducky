@@ -13,6 +13,8 @@ from ducky_backend.services.pip_service import PipService
 from ducky_backend.services.pypi_service import PypiService
 from ducky_backend.services.jupyter_service import JupyterService
 from ducky_backend.services.training_service import TrainingService
+from ducky_backend.services.llm_service import LLMService
+from ducky_backend.services.kernel_service import KernelService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +41,12 @@ async def main() -> None:
     pypi = PypiService()
     jupyter = JupyterService(handler.send_notification)
     training = TrainingService(handler.send_notification)
+
+    # LLM owns inference; the notebook kernel depends on it so cells can call
+    # the loaded model directly.
+    llm = LLMService(handler.send_notification)
+    kernel = KernelService(handler.send_notification, llm_service=llm)
+    kernel.bind_loop(asyncio.get_event_loop())
 
     async def ping_handler(**kwargs):
         return {'status': 'ok', 'pid': os.getpid()}
@@ -68,6 +76,27 @@ async def main() -> None:
     dispatcher.register('train.cancel', training.cancel)
     dispatcher.register('train.status', training.status)
 
+    # Local LLM inference
+    dispatcher.register('llm.backendInfo', llm.backend_info)
+    dispatcher.register('llm.listModels', llm.list_models)
+    dispatcher.register('llm.load', llm.load_model)
+    dispatcher.register('llm.unload', llm.unload_model)
+    dispatcher.register('llm.status', llm.status)
+    dispatcher.register('llm.generate', llm.generate)
+    dispatcher.register('llm.generateStream', llm.generate_stream)
+    dispatcher.register('llm.cancel', llm.cancel)
+    dispatcher.register('llm.countTokens', llm.count_tokens)
+
+    # Notebook kernel
+    dispatcher.register('kernel.createSession', kernel.create_session)
+    dispatcher.register('kernel.deleteSession', kernel.delete_session)
+    dispatcher.register('kernel.listSessions', kernel.list_sessions)
+    dispatcher.register('kernel.execute', kernel.execute)
+    dispatcher.register('kernel.interrupt', kernel.interrupt)
+    dispatcher.register('kernel.variables', kernel.variables)
+    dispatcher.register('kernel.setVariable', kernel.set_variable)
+    dispatcher.register('kernel.deleteVariable', kernel.delete_variable)
+
     logger.info('Ducky backend starting (PID %d)', os.getpid())
 
     shutdown_event = asyncio.Event()
@@ -91,6 +120,9 @@ async def main() -> None:
     except asyncio.CancelledError:
         pass
     finally:
+        # Release model memory and stop cell workers before exiting.
+        kernel.shutdown()
+        llm.shutdown()
         await handler.close()
         logger.info('Backend shutdown complete')
 

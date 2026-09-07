@@ -6,3 +6,8 @@ backend/dist/
 *.pyc
 __pycache__/
 .DS_Store
+
+# project data / local venvs / build temps
+.workbuddy/
+backend/.venv/
+backend/build/
