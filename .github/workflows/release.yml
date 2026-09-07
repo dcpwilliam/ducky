@@ -3,9 +3,11 @@
 # 已知限制（生产前需处理）：
 #   1. 未签名：当前不配置 CSC_LINK / 签名证书，产出 unsigned 安装包（个人分发可接受，
 #      正式发布建议补 macOS 公证 + Windows 代码签名）。
-#   2. backend/dist 内嵌的是 macOS 版可移植 Python 运行时；Windows 打包会把它一起打进
-#      nsis，导致 Windows 端的 Python 运行时是 macOS 版（不可用）。需后续为 Windows 构建
-#      准备一份 Windows python 放入 backend/dist 后再启用 Windows 目标。
+#   2. 打包前会通过 `npm run fetch-python(:win)` 把对应平台的 Python 运行时拉取到
+#      resources/python/（electron-builder 的 extraResources 会将其打进安装包），故 macOS 出
+#      arm64 python、Windows 出 x64 python，运行时与平台匹配（locate.ts 的 getBundledPython
+#      读取的正是 resources/python）。注意 mac runner 默认取 arm64；要 x64 dmg 需显式
+#      `node scripts/fetch-python.mjs mac-x64`。
 
 name: Release
 
@@ -41,11 +43,19 @@ jobs:
       - name: Build (electron-vite)
         run: npm run build
 
+      - name: Fetch macOS Python runtime
+        if: matrix.os == 'macos-latest'
+        run: npm run fetch-python
+
       - name: Package macOS (dmg, unsigned)
         if: matrix.os == 'macos-latest'
         env:
           CSC_IDENTITY_AUTO_DISCOVER: 'false'
         run: npx electron-builder --mac --config electron-builder.yml --publish never
+
+      - name: Fetch Windows Python runtime
+        if: matrix.os == 'windows-latest'
+        run: npm run fetch-python:win
 
       - name: Package Windows (nsis, unsigned)
         if: matrix.os == 'windows-latest'
