@@ -1,0 +1,72 @@
+# 发布工作流：在打 `v*` tag 或手动触发时，跨平台打包安装包并发布到 GitHub Release。
+#
+# 已知限制（生产前需处理）：
+#   1. 未签名：当前不配置 CSC_LINK / 签名证书，产出 unsigned 安装包（个人分发可接受，
+#      正式发布建议补 macOS 公证 + Windows 代码签名）。
+#   2. backend/dist 内嵌的是 macOS 版可移植 Python 运行时；Windows 打包会把它一起打进
+#      nsis，导致 Windows 端的 Python 运行时是 macOS 版（不可用）。需后续为 Windows 构建
+#      准备一份 Windows python 放入 backend/dist 后再启用 Windows 目标。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Package (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write   # 用于 softprops/action-gh-release 创建 Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (electron-vite)
+        run: npm run build
+
+      - name: Package macOS (dmg, unsigned)
+        if: matrix.os == 'macos-latest'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVER: 'false'
+        run: npx electron-builder --mac --config electron-builder.yml --publish never
+
+      - name: Package Windows (nsis, unsigned)
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win --config electron-builder.yml --publish never
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ducky-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+          if-no-files-found: warn
+
+      # 仅在打 tag 时把产物作为 GitHub Release 资产发布（手动触发时不创建 Release）。
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
